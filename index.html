@@ -23,7 +23,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);display:flex;j
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:16px;text-align:center;transition:transform .2s}
 .card .t{font-size:18px;font-weight:600}
 .card .s{font-size:13px;color:var(--muted)}
-.card.zoom{transform:scale(1.15)}
+.viewer-full{position:fixed;inset:0;z-index:100;background:#000;display:grid;place-items:center}
+.viewer-full img{width:100vw;height:100vh;height:100dvh;object-fit:contain}
+.viewer-full .msg{color:#fff;font-size:15px}
+.viewer-full .close{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:10px;color:#fff;background:rgba(0,0,0,.45);border-radius:50%}
 .card{position:relative;cursor:pointer;overflow:hidden}
 .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--surface)}
 .controls{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
@@ -75,15 +78,21 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
   </nav>
 </div>
 
+<div class="viewer-full" id="full" hidden>
+  <img id="fullImg" alt="">
+  <span class="msg" id="fullMsg" hidden>Nenhuma foto escolhida neste cartão</span>
+  <button class="close" id="fullClose" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
 <script>
 // Texto da etiqueta amarela — o mesmo em todos os cartões
 const CHIP="DOCUMENTO DE INDENTIFICAÇÃO";
 // Foto de cada cartão: troque "img" pelo caminho da sua imagem (na mesma pasta do HTML)
 const slides=[
-  {img:"idthiago.jpeg",t:"Foto 1",s:"Clique para escolher"},
-  {img:"idthiago 2.png",t:"Foto 2",s:"Clique para escolher"},
-  {img:"idthiago 3.png",t:"Foto 3",s:"Clique para escolher"},
-  {img:"id4.png",t:"Foto 4",s:"Clique para escolher"}
+  { img: "idthiago.jpeg", t: "Foto 1", s: "Clique para escolher" },
+  { img: "idthiago 2.png", t: "Foto 2", s: "Clique para escolher" },
+  { img: "idthiago 3.png", t: "Foto 3", s: "Clique para escolher" },
+  { img: "id4.png", t: "Foto 4", s: "Clique para escolher" }
 ];
 const track=document.getElementById('track'),dots=document.getElementById('dots');let i=0;
 slides.forEach((d,n)=>{
@@ -96,7 +105,18 @@ slides.forEach((d,n)=>{
 function go(n){i=(n+slides.length)%slides.length;track.style.transform=`translateX(-${i*100}%)`;
   [...dots.children].forEach((b,k)=>b.setAttribute('aria-current',k===i));}
 document.getElementById('next').onclick=()=>go(i+1);
-document.getElementById('zoom').onclick=()=>document.querySelectorAll('.card').forEach(c=>c.classList.toggle('zoom'));
+// Lupa: abre a foto do cartão atual em tela cheia
+const full=document.getElementById('full'),fullImg=document.getElementById('fullImg'),fullMsg=document.getElementById('fullMsg');
+document.getElementById('zoom').onclick=()=>{
+  const img=track.children[i].querySelector('.card img'),has=!img.hidden&&img.src;
+  fullImg.hidden=!has;fullMsg.hidden=!!has;if(has){fullImg.src=img.src;fullImg.alt=img.alt;}
+  full.hidden=false;
+  if(full.requestFullscreen)full.requestFullscreen().catch(()=>{});
+};
+function closeFull(){full.hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
+full.onclick=closeFull;
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)full.hidden=true;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!full.hidden)closeFull();});
 document.querySelectorAll('nav .tab:not(.center)').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('nav .tab').forEach(x=>x.removeAttribute('aria-current'));t.setAttribute('aria-current','page');});
 let x0=null;track.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
