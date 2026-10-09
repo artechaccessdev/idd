@@ -1,0 +1,111 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Layout Carteira Mobile</title>
+<style>
+/* Layout: tela única de app mobile — conteúdo central em cartões paginados, barra de ações e navegação inferior fixa */
+:root{
+  --bg:#ffffff; --surface:#ffffff; --fg:#1d2430; --muted:#6b7480;
+  --line:#dfe3e8; --green:#1f9d4c; --green-ink:#ffffff; --blue:#1f5fbf;
+  --chip:#ffd84d; --chip-ink:#3a2f00; --card-a:#e7f0fb; --card-b:#d4e5f7;
+  --shadow:0 2px 8px rgba(20,30,50,.12);
+  color-scheme:light;
+  --font:"Roboto",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);display:flex;justify-content:center}
+.app{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;background:var(--bg)}
+.content{flex:1;min-height:0;display:flex;flex-direction:column;padding:16px 16px 8px;gap:12px}
+.viewer{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:6px}
+.track{display:flex;height:100%;transition:transform .3s ease}
+@media (prefers-reduced-motion:reduce){.track{transition:none}}
+.slide{flex:0 0 100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:4px}
+.chip{background:var(--chip);color:var(--chip-ink);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px}
+.card{flex:1;width:100%;border:1px solid var(--line);background:repeating-linear-gradient(135deg,var(--card-a) 0 6px,var(--card-b) 6px 7px);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:16px;text-align:center;transition:transform .2s}
+.card .t{font-size:18px;font-weight:600}
+.card .s{font-size:13px;color:var(--muted)}
+.card.zoom{transform:scale(1.15)}
+.card{position:relative;cursor:pointer;overflow:hidden}
+.card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--surface)}
+.controls{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+.iconbtn{width:44px;height:44px;border-radius:10px;border:0;background:var(--surface);color:var(--fg);box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer}
+.fab{background:var(--green);color:var(--green-ink)}
+.pager{display:flex;align-items:center;justify-content:center;gap:10px}
+.dot{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:var(--line);cursor:pointer}
+.dot[aria-current="true"]{background:var(--blue)}
+.next{border:0;background:none;color:var(--blue);cursor:pointer;margin-left:18px;display:grid;place-items:center}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+nav{background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:end;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.tab{border:0;background:none;color:var(--muted);font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0}
+.tab[aria-current="page"]{color:var(--blue)}
+.tab.center .bubble{width:52px;height:52px;border-radius:50%;background:var(--green);color:var(--green-ink);display:grid;place-items:center;margin-top:-26px;border:4px solid var(--surface)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+.logo{height:36px;min-width:36px;max-width:160px;display:grid;place-items:center;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;overflow:hidden}
+.logo.has-img{border:0}
+.logo img{height:36px;width:auto;display:block}
+.close{border:0;background:none;color:var(--fg);width:40px;height:40px;display:grid;place-items:center;cursor:pointer}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <!-- Para fixar a logo, troque o src abaixo pelo caminho da sua imagem (ex.: "logo.png") -->
+    <label class="logo" id="logo" title="Clique para escolher a logo">
+      <img id="logoImg" src="/wd.webp" alt="Logo" hidden>
+      <span id="logoPh">LOGO</span>
+      <input type="file" accept="image/*" id="logoFile" hidden>
+    </label>
+    <button class="close" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <main class="content">
+    <div class="viewer"><div class="track" id="track"></div></div>
+    <div class="controls">
+      <button class="iconbtn" id="zoom" aria-label="Ampliar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button>
+      <div class="pager"><span id="dots" style="display:flex;gap:10px"></span>
+        <button class="next" id="next" aria-label="Próximo"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>
+      <button class="iconbtn fab" aria-label="Mais opções"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+    </div>
+  </main>
+  <nav>
+    <button class="tab"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
+    <button class="tab"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Dados</button>
+    <button class="tab center" aria-label="Ler QR"><span class="bubble"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></span></button>
+    <button class="tab" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M6 6V5a1 1 0 0 1 1-1h10"/></svg>Carteira</button>
+    <button class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
+  </nav>
+</div>
+
+<script>
+// Texto da etiqueta amarela — o mesmo em todos os cartões
+const CHIP="DOCUMENTO DE INDENTIFICAÇÃO";
+// Foto de cada cartão: troque "img" pelo caminho da sua imagem (na mesma pasta do HTML)
+const slides=[
+  {img:"idthiago.jpeg",t:"Foto 1",s:"Clique para escolher"},
+  {img:"idthiago 2.png",t:"Foto 2",s:"Clique para escolher"},
+  {img:"idthiago 3.png",t:"Foto 3",s:"Clique para escolher"},
+  {img:"id4.png",t:"Foto 4",s:"Clique para escolher"}
+];
+const track=document.getElementById('track'),dots=document.getElementById('dots');let i=0;
+slides.forEach((d,n)=>{
+  track.insertAdjacentHTML('beforeend',`<div class="slide"><span class="chip">${CHIP}</span><label class="card"><div class="t">${d.t}</div><div class="s">${d.s}</div><img src="${d.img}" alt="${d.t}" hidden><input type="file" accept="image/*" hidden></label></div>`);
+  const card=track.lastElementChild.querySelector('.card'),img=card.querySelector('img');
+  img.onload=()=>img.hidden=false;
+  card.querySelector('input').onchange=e=>{const f=e.target.files[0];if(f)img.src=URL.createObjectURL(f);};
+  const b=document.createElement('button');b.className='dot';b.setAttribute('aria-label','Cartão '+(n+1));b.onclick=()=>go(n);dots.appendChild(b);
+});
+function go(n){i=(n+slides.length)%slides.length;track.style.transform=`translateX(-${i*100}%)`;
+  [...dots.children].forEach((b,k)=>b.setAttribute('aria-current',k===i));}
+document.getElementById('next').onclick=()=>go(i+1);
+document.getElementById('zoom').onclick=()=>document.querySelectorAll('.card').forEach(c=>c.classList.toggle('zoom'));
+document.querySelectorAll('nav .tab:not(.center)').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('nav .tab').forEach(x=>x.removeAttribute('aria-current'));t.setAttribute('aria-current','page');});
+let x0=null;track.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
+track.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)go(i+(dx<0?1:-1));x0=null;});
+go(0);
+const logo=document.getElementById('logo'),logoImg=document.getElementById('logoImg'),logoPh=document.getElementById('logoPh');
+function showLogo(){logoImg.hidden=false;logoPh.hidden=true;logo.classList.add('has-img');}
+logoImg.onload=showLogo;if(logoImg.complete&&logoImg.naturalWidth)showLogo();
+document.getElementById('logoFile').onchange=e=>{const f=e.target.files[0];if(f)logoImg.src=URL.createObjectURL(f);};
+</script>
+
+</body></html>
