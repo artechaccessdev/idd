@@ -24,9 +24,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);display:flex;j
 .card .t{font-size:18px;font-weight:600}
 .card .s{font-size:13px;color:var(--muted)}
 .viewer-full{position:fixed;inset:0;z-index:100;background:#000;display:grid;place-items:center}
-.viewer-full img{width:100vw;height:100vh;height:100dvh;object-fit:contain}
+.viewer-full{overflow:hidden;touch-action:none}
+.viewer-full img{width:100vw;height:100vh;height:100dvh;object-fit:contain;transform-origin:center;will-change:transform;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;cursor:zoom-in}
 .viewer-full .msg{color:#fff;font-size:15px}
-.viewer-full .close{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:10px;color:#fff;background:rgba(0,0,0,.45);border-radius:50%}
+.viewer-full .close{z-index:1;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:10px;color:#fff;background:rgba(0,0,0,.45);border-radius:50%}
 .card{position:relative;cursor:pointer;overflow:hidden}
 .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--surface)}
 .controls{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
@@ -95,9 +96,12 @@ const slides=[
   { img: "id4.png", t: "Foto 4", s: "Clique para escolher" }
 ];
 const track=document.getElementById('track'),dots=document.getElementById('dots');let i=0;
+// No celular (tela de toque) tocar na foto não abre o seletor para trocar a imagem
+const isTouch=matchMedia('(pointer:coarse)').matches;
 slides.forEach((d,n)=>{
-  track.insertAdjacentHTML('beforeend',`<div class="slide"><span class="chip">${CHIP}</span><label class="card"><div class="t">${d.t}</div><div class="s">${d.s}</div><img src="${d.img}" alt="${d.t}" hidden><input type="file" accept="image/*" hidden></label></div>`);
+  track.insertAdjacentHTML('beforeend',`<div class="slide"><span class="chip">${CHIP}</span><label class="card"><div class="t">${d.t}</div><div class="s">${isTouch?'':d.s}</div><img src="${d.img}" alt="${d.t}" hidden><input type="file" accept="image/*" hidden${isTouch?' disabled':''}></label></div>`);
   const card=track.lastElementChild.querySelector('.card'),img=card.querySelector('img');
+  if(isTouch)card.style.cursor='default';
   img.onload=()=>img.hidden=false;
   card.querySelector('input').onchange=e=>{const f=e.target.files[0];if(f)img.src=URL.createObjectURL(f);};
   const b=document.createElement('button');b.className='dot';b.setAttribute('aria-label','Cartão '+(n+1));b.onclick=()=>go(n);dots.appendChild(b);
@@ -110,11 +114,46 @@ const full=document.getElementById('full'),fullImg=document.getElementById('full
 document.getElementById('zoom').onclick=()=>{
   const img=track.children[i].querySelector('.card img'),has=!img.hidden&&img.src;
   fullImg.hidden=!has;fullMsg.hidden=!!has;if(has){fullImg.src=img.src;fullImg.alt=img.alt;}
-  full.hidden=false;
+  resetZoom();full.hidden=false;
   if(full.requestFullscreen)full.requestFullscreen().catch(()=>{});
 };
 function closeFull(){full.hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
-full.onclick=closeFull;
+// Fecha pelo X (ou tocando fora quando não há foto); tocar na foto não fecha mais
+full.onclick=e=>{if(e.target!==fullImg)closeFull();};
+// Zoom na foto ampliada: pinça com dois dedos, arrastar para mover, toque duplo para aproximar/voltar, roda do mouse no PC
+const MAXZ=6;let sc=1,tx=0,ty=0,lastTap=0;const pts=new Map();
+fullImg.draggable=false;
+function applyZoom(){fullImg.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;fullImg.style.cursor=sc>1?'grab':'zoom-in';}
+function resetZoom(){sc=1;tx=ty=0;pts.clear();applyZoom();}
+function clampZoom(){if(sc<=1){sc=1;tx=ty=0;return;}
+  const mx=innerWidth*(sc-1)/2,my=innerHeight*(sc-1)/2;
+  tx=Math.max(-mx,Math.min(mx,tx));ty=Math.max(-my,Math.min(my,ty));}
+function zoomAt(ns,px,py){ns=Math.max(1,Math.min(MAXZ,ns));
+  const cx=px-innerWidth/2,cy=py-innerHeight/2;
+  tx=cx-(cx-tx)*ns/sc;ty=cy-(cy-ty)*ns/sc;sc=ns;clampZoom();applyZoom();}
+fullImg.addEventListener('pointerdown',e=>{fullImg.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY});});
+fullImg.addEventListener('pointermove',e=>{
+  const p=pts.get(e.pointerId);if(!p)return;
+  if(pts.size===2){
+    const [a,b]=[...pts.values()],o=a===p?b:a;
+    const d0=Math.hypot(p.x-o.x,p.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);
+    const mx0=(p.x+o.x)/2,my0=(p.y+o.y)/2,mx1=(e.clientX+o.x)/2,my1=(e.clientY+o.y)/2;
+    tx+=mx1-mx0;ty+=my1-my0;
+    if(d0>0)zoomAt(sc*d1/d0,mx1,my1);else{clampZoom();applyZoom();}
+  }else if(pts.size===1&&sc>1){tx+=e.clientX-p.x;ty+=e.clientY-p.y;clampZoom();applyZoom();}
+  p.x=e.clientX;p.y=e.clientY;
+});
+function endPointer(e){
+  const p=pts.get(e.pointerId);if(!p)return;
+  const single=pts.size===1;pts.delete(e.pointerId);
+  if(e.type!=='pointerup'||!single||Math.hypot(e.clientX-p.x0,e.clientY-p.y0)>10)return;
+  const now=Date.now();
+  if(now-lastTap<300){lastTap=0;if(sc>1){sc=1;clampZoom();applyZoom();}else zoomAt(2.5,e.clientX,e.clientY);}
+  else lastTap=now;
+}
+fullImg.addEventListener('pointerup',endPointer);
+fullImg.addEventListener('pointercancel',endPointer);
+full.addEventListener('wheel',e=>{if(fullImg.hidden)return;e.preventDefault();zoomAt(sc*(e.deltaY<0?1.2:1/1.2),e.clientX,e.clientY);},{passive:false});
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)full.hidden=true;});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!full.hidden)closeFull();});
 document.querySelectorAll('nav .tab:not(.center)').forEach(t=>t.onclick=()=>{
