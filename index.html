@@ -1,5 +1,23 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Layout Carteira Mobile</title>
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carteira</title>
+<!-- PWA / iPhone -->
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Carteira">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+</style>
 <style>
 /* Layout: tela única de app mobile — conteúdo central em cartões paginados, barra de ações e navegação inferior fixa */
 :root{
@@ -10,7 +28,7 @@
   color-scheme:light;
   --font:"Roboto",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
-html,body{height:100%}
+html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);display:flex;justify-content:center}
 .app{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;background:var(--bg)}
 .content{flex:1;min-height:0;display:flex;flex-direction:column;padding:16px 16px 8px;gap:12px}
@@ -50,6 +68,7 @@ nav{background:var(--surface);border-top:1px solid var(--line);display:grid;grid
 .close{border:0;background:none;color:var(--fg);width:40px;height:40px;display:grid;place-items:center;cursor:pointer}
 svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
+</head><body>
 
 <div class="app">
   <header class="topbar">
@@ -165,6 +184,8 @@ const logo=document.getElementById('logo'),logoImg=document.getElementById('logo
 function showLogo(){logoImg.hidden=false;logoPh.hidden=true;logo.classList.add('has-img');}
 logoImg.onload=showLogo;if(logoImg.complete&&logoImg.naturalWidth)showLogo();
 document.getElementById('logoFile').onchange=e=>{const f=e.target.files[0];if(f)logoImg.src=URL.createObjectURL(f);};
+// PWA: deixa o app funcionar offline depois de aberto uma vez
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 
 </body></html>
